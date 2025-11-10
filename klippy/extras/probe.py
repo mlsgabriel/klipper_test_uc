@@ -619,5 +619,45 @@ class PrinterProbe:
     def start_probe_session(self, gcmd):
         return self.probe_session.start_probe_session(gcmd)
 
+class ProbeManager:
+    def __init__(self, config):
+        self.probes = {}
+        self.active_probe = None
+
+    def add_probe(self, name, config):
+        probe = PrinterProbe(config)
+        self.probes[name] = probe
+        if self.active_probe is None:
+            self.active_probe = probe
+
+    def select_probe(self, name):
+        if name not in self.probes:
+            raise config.error(f"Probe '{name}' not found")
+        self.active_probe = self.probes[name]
+
+    def get_active_probe(self):
+        return self.active_probe
+
+class ProbeManagerCommands:
+    def __init__(self, config, manager):
+        self.manager = manager
+        gcode = config.get_printer().lookup_object('gcode')
+        gcode.register_command("SELECT_PROBE", self.cmd_SELECT_PROBE,
+                               desc="Select active probe")
+
+    def cmd_SELECT_PROBE(self, gcmd):
+        name = gcmd.get('NAME')
+        self.manager.select_probe(name)
+        gcmd.respond_info(f"Active probe set to: {name}")
+
+#def load_config(config):
+#    return PrinterProbe(config)
+
 def load_config(config):
-    return PrinterProbe(config)
+    manager = ProbeManager(config.get_printer())
+    for section in config.get_prefix_sections("probe"):
+        name = section.get_name().split(" ", 1)[1] if " " in section.get_name() else "default"
+        manager.add_probe(name, section)
+    gcode = config.get_printer().lookup_object('gcode')
+    ProbeManagerCommands(config, manager)
+    return manager
