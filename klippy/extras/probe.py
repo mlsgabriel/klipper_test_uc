@@ -611,11 +611,12 @@ class ProbeEndstopWrapper:
 
 # Main external probe interface
 class PrinterProbe:
-    def __init__(self, config):
+    def __init__(self, config, probe_num):
         self.printer = config.get_printer()
 
         #add name variable
         self.name = config.get_name().split()[-1]
+        gcode_id = 'T%d' % (probe_num,)
 
         self.mcu_probe = ProbeEndstopWrapper(config)
         self.cmd_helper = ProbeCommandHelper(config, self,
