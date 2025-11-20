@@ -171,6 +171,18 @@ class ProbeCommandHelper:
             % (self.name, new_calibrate))
         configfile = self.printer.lookup_object('configfile')
         configfile.set(self.name, 'z_offset', "%.3f" % (new_calibrate,))
+    
+    #Activate Probe command
+    cmd_ACTIVATE_PROBE_help = "Change the active probe"
+    def cmd_ACTIVATE_EXTRUDER(self, gcmd):
+        toolhead = self.printer.lookup_object('toolhead')
+        if toolhead.get_extruder() is self:
+            gcmd.respond_info("Extruder %s already active" % (self.name,))
+            return
+        gcmd.respond_info("Activating extruder %s" % (self.name,))
+        toolhead.flush_step_generation()
+        toolhead.set_extruder(self, self.last_position)
+        self.printer.send_event("extruder:activate_extruder")
 
 # Helper to lookup the minimum Z position for the printer
 def lookup_minimum_z(config):
@@ -601,6 +613,10 @@ class ProbeEndstopWrapper:
 class PrinterProbe:
     def __init__(self, config):
         self.printer = config.get_printer()
+
+        #add name variable
+        self.name = config.get_name().split()[-1]
+
         self.mcu_probe = ProbeEndstopWrapper(config)
         self.cmd_helper = ProbeCommandHelper(config, self,
                                              self.mcu_probe.query_endstop)
@@ -619,45 +635,20 @@ class PrinterProbe:
     def start_probe_session(self, gcmd):
         return self.probe_session.start_probe_session(gcmd)
 
-class ProbeManager:
-    def __init__(self, config):
-        self.probes = {}
-        self.active_probe = None
-
-    def add_probe(self, name, config):
-        probe = PrinterProbe(config)
-        self.probes[name] = probe
-        if self.active_probe is None:
-            self.active_probe = probe
-
-    def select_probe(self, name):
-        if name not in self.probes:
-            raise config.error(f"Probe '{name}' not found")
-        self.active_probe = self.probes[name]
-
-    def get_active_probe(self):
-        return self.active_probe
-
-class ProbeManagerCommands:
-    def __init__(self, config, manager):
-        self.manager = manager
-        gcode = config.get_printer().lookup_object('gcode')
-        gcode.register_command("SELECT_PROBE", self.cmd_SELECT_PROBE,
-                               desc="Select active probe")
-
-    def cmd_SELECT_PROBE(self, gcmd):
-        name = gcmd.get('NAME')
-        self.manager.select_probe(name)
-        gcmd.respond_info(f"Active probe set to: {name}")
-
-#def load_config(config):
-#    return PrinterProbe(config)
+def add_printer_objects(config):
+    printer = config.get_printer()
+    for i in range(99):
+        section = 'probe'
+        if i:
+            section = 'probe%d' % (i,)
+        if not config.has_section(section):
+            break
+        pp = PrinterProbe(config.getsection(section), i)
+        printer.add_object(section, pp)
 
 def load_config(config):
-    manager = ProbeManager(config.get_printer())
-    for section in config.get_prefix_sections("probe"):
-        name = section.get_name().split(" ", 1)[1] if " " in section.get_name() else "default"
-        manager.add_probe(name, section)
-    gcode = config.get_printer().lookup_object('gcode')
-    ProbeManagerCommands(config, manager)
-    return manager
+    #probe1 = PrinterProbe(config)
+    #probe2 = PrinterProbe(config)
+    #return PrinterProbe(config)
+    probe = add_printer_objects(config)
+    return probe
