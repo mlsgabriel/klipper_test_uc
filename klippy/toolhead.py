@@ -666,12 +666,12 @@ class ToolHead:
         kin_name = config.get(config_name)
 
         # TODO: Support other kinematics is due. Error out for now.
-        if kin_name not in self.supported_kinematics:
-            msg = f"Error loading kinematics '{kin_name}'. Currently supported kinematics: {self.supported_kinematics}"
-            logging.exception(msg)
-            raise config.error(msg)
-        else:
-            logging.info(f"Loading kinematics {kin_name}.")
+        #if kin_name not in self.supported_kinematics:
+        #    msg = f"Error loading kinematics '{kin_name}'. Currently supported kinematics: {self.supported_kinematics}"
+        #    logging.exception(msg)
+        #    raise config.error(msg)
+        #else:
+        #    logging.info(f"Loading kinematics {kin_name}.")
 
         # Create a Trapq for the kinematics
         ffi_main, ffi_lib = chelper.get_ffi()
