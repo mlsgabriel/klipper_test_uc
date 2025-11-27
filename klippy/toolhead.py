@@ -678,17 +678,18 @@ class ToolHead:
         ffi_main, ffi_lib = chelper.get_ffi()
         # Create a trapq object for this axis set even if the kinematics is set to "none".
         # This is back-compatibile, as it is expected by common parts of the code, particularly by "motion_report".
-        trapq = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free)
+        trapq = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free) 
 
         # Set up the kinematics object
         try:
             # Import the python module file for the requested kinematic.
             mod = importlib.import_module('kinematics.' + kin_name)
             # Run the modules setup function.
-            kin = mod.load_kinematics(toolhead=self, config=config, trapq=trapq,
-                                      # Specify which of the "toolhead position" elements correspond to the new set of axes.
-                                      axes_ids=axes_ids.copy(),             # e.g. [1,2]
-                                      axis_set_letters=axis_set_letters)    # e.g. "XY"
+            #kin = mod.load_kinematics(toolhead=self, config=config, trapq=trapq,
+            #                          # Specify which of the "toolhead position" elements correspond to the new set of axes.
+            #                          axes_ids=axes_ids.copy(),             # e.g. [1,2]
+            #                          axis_set_letters=axis_set_letters)    # e.g. "XY"
+            self.kin = mod.load_kinematics(self, config)
         except config.error as e:
             raise
         except self.printer.lookup_object('pins').error as e:
